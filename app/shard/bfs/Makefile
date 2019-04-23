@@ -3,11 +3,11 @@ FLAGS := -O3 -std=c++11
 
 SOURCE := ../../../buffer.cu ../../../graphio.cpp ../../../query.cu ../../../utils.cpp ../skelecton.cu main.cu compute.cu
 
-TARGET := sssp
+TARGET := bfs
 
-all : sssp
+all : bfs
 
-sssp :
+bfs :
 	$(CC) $(FLAGS) $(SOURCE) -o $(TARGET)
 
 clean :
