@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
     FILE *fp = open_file_access(conf.input_path, "r");
 
     /* construct graph shard representation */
-    graph_shard graph;
+    graph_shard<uint> graph;
     graph_construct(fp, graph, &(props.devices[conf.device]), &conf);
 
     execute(graph, &conf);

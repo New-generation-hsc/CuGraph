@@ -5,7 +5,7 @@
 #include <cstdio>
 
 
-void sssp_graph_init(graph_shard &graph, config_t *conf){
+void sssp_graph_init(graph_shard<uint> &graph, config_t *conf){
     for(uint nodeIdex = 0; nodeIdex < graph.n; ++nodeIdex){
         if(nodeIdex == conf->source) graph.values[nodeIdex] = 0;
         else graph.values[nodeIdex] = INF;
@@ -13,9 +13,10 @@ void sssp_graph_init(graph_shard &graph, config_t *conf){
 }
 
 // graph_shard initialize function point to a specific function
-graph_init graph_shard_init = &sssp_graph_init;
+template<>
+void (*graph_initializer<uint>::graph_init)(graph_shard<uint>&, config_t*) = &sssp_graph_init;
 
-void write_to_file(graph_shard &graph, config_t *conf){
+void write_to_file(graph_shard<uint> &graph, config_t *conf){
 
     FILE *fp = open_file_access(conf->output_path, "w");
     for(uint nodeIdex = 0; nodeIdex < graph.n; ++nodeIdex){
@@ -161,7 +162,7 @@ void process( const uint blocksize,
     }
 }
 
-void execute(graph_shard &graph, config_t *conf){
+void execute(graph_shard<uint> &graph, config_t *conf){
 
     buffer<uint>   dev_values( DEVICE );
     buffer<uint>   dev_srcValues( DEVICE );
