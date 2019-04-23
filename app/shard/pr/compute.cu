@@ -5,49 +5,50 @@
 #include <cstdio>
 
 
-void sssp_graph_init(graph_shard &graph, config_t *conf){
+void pagerank_graph_init(graph_shard<float> &graph, config_t *conf){
     for(uint nodeIdex = 0; nodeIdex < graph.n; ++nodeIdex){
-        if(nodeIdex == conf->source) graph.values[nodeIdex] = 0;
-        else graph.values[nodeIdex] = INF;
+        graph.values[nodeIdex] = conf->init_prval;
     }
 }
 
 // graph_shard initialize function point to a specific function
-graph_init graph_shard_init = &sssp_graph_init;
+template<>
+void (*graph_initializer<float>::graph_init)(graph_shard<float>&, config_t*) = &pagerank_graph_init;
 
-void write_to_file(graph_shard &graph, config_t *conf){
+void write_to_file(graph_shard<float> &graph, config_t *conf){
 
     FILE *fp = open_file_access(conf->output_path, "w");
     for(uint nodeIdex = 0; nodeIdex < graph.n; ++nodeIdex){
-        fprintf(fp, "%u -> %u\n", graph.labels[nodeIdex], graph.values[nodeIdex]);
+        fprintf(fp, "%u -> %.4f\n", graph.labels[nodeIdex], graph.values[nodeIdex]);
     }
     fclose(fp);
 }
 
-inline __device__ void compute(uint* local, const uint *weight, const uint *src){
-    if(*src != INF){
-        atomicMin(local, *src + *weight);
-    }
+inline __device__ void compute(float* local, const uint *nbrs, const float *src){
+    atomicAdd(local, *src / *nbrs);
 }
 
-__global__ void kernel ( const uint nShards,
+__global__ void kernel ( const uint num_nodes,
+                         const uint nShards,
                          const uint shardMaxNumVertices,
+                         const float factor,
+                         const float threshold,
                          const uint *srcIndex,
                          const uint *destIndex,
-                         uint       *srcValues,
-                         uint       *values,
-                         const uint *edgeValues,
+                         float      *srcValues,
+                         float      *values,
+                         const uint *neighbors,
                          const uint *shardSizeScan,
                          const uint *windowSizeScan,
                          bool       *lock
                        )
 {
-    extern __shared__ uint localValues[];
+    extern __shared__ float localValues[];
 
     uint shardOffSet = blockIdx.x * shardMaxNumVertices;
     uint shardStartAddr = shardSizeScan[ blockIdx.x ];
     uint shardEndAddr   = shardSizeScan[ blockIdx.x + 1 ];
-    uint *blockValues = values + shardOffSet;
+    float *blockValues = values + shardOffSet;
 
     for(uint tid = threadIdx.x; tid < shardMaxNumVertices; tid += blockDim.x){
         localValues[ tid ] = blockValues[ tid ];
@@ -60,7 +61,7 @@ __global__ void kernel ( const uint nShards,
        )
     {
         compute(localValues + (destIndex[entryAddr] - shardOffSet),
-                edgeValues  + entryAddr,
+                neighbors   + entryAddr,
                 srcValues   + entryAddr
                );
     }
@@ -68,7 +69,8 @@ __global__ void kernel ( const uint nShards,
 
     bool flag = false;
     for(uint tid = threadIdx.x; tid < shardMaxNumVertices; tid += blockDim.x){
-        if(localValues[ tid ] < blockValues[ tid ]){
+        localValues[ tid ] = localValues[ tid ] * factor + (1 - factor) / num_nodes;
+        if(fabs(localValues[ tid ] - blockValues[ tid ]) > threshold){
             flag = true;
             blockValues[ tid ] = localValues[ tid ];
         }
@@ -97,16 +99,20 @@ __global__ void kernel ( const uint nShards,
     }
 }
 
-void process( const uint blocksize,
+void process( const uint num_nodes,
+              const uint blocksize,
               const uint shardMaxNumVertices,
               const uint nShards,
-              uint      *values,
+              const float factor,
+              const float threshold,
+              const uint  maximum_iterations,
+              float      *values,
               const uint *windowSizeScan,
               const uint *shardSizeScan,
-              uint      *srcValues,
+              float      *srcValues,
               const uint *srcIndex,
               const uint *destIndex,
-              uint       *edgeValues,
+              const uint *neighbors,
               bool       verbose
             )
 {
@@ -129,13 +135,16 @@ void process( const uint blocksize,
         cudaMemcpyAsync(dev_lock, &lock, sizeof(bool), cudaMemcpyHostToDevice);
         kernel<<< nShards, blocksize, sizeof(uint) * shardMaxNumVertices >>> 
             (
+                num_nodes,
                 nShards,
                 shardMaxNumVertices,
+                factor,
+                threshold,
                 srcIndex,
                 destIndex,
                 srcValues,
                 values,
-                edgeValues,
+                neighbors,
                 shardSizeScan,
                 windowSizeScan,
                 dev_lock
@@ -150,7 +159,7 @@ void process( const uint blocksize,
         if(verbose){
             printf("| %3dth |                  kernel function iteration                |   %3.4f   |\n", iterations, elapsed);
         }
-    }while(lock);
+    }while(lock && iterations < maximum_iterations);
 
     if(verbose){
         printf("+--------------------------------------------------------------------------------+\n");
@@ -161,10 +170,10 @@ void process( const uint blocksize,
     }
 }
 
-void execute(graph_shard &graph, config_t *conf){
+void execute(graph_shard<float> &graph, config_t *conf){
 
     buffer<float>   dev_values( DEVICE );
-    buffer<uint>   dev_srcValues( DEVICE );
+    buffer<float>   dev_srcValues( DEVICE );
     buffer<uint>   dev_neigbors( DEVICE );
     buffer<uint>   dev_destIndex ( DEVICE );
     buffer<uint>   dev_srcIndex( DEVICE );
@@ -183,16 +192,20 @@ void execute(graph_shard &graph, config_t *conf){
 
     cudaDeviceSynchronize();
 
-    process ( graph.blocksize,
+    process ( graph.n,
+              graph.blocksize,
               graph.shard_max_num_nodes,
               graph.num_shards,
+              conf->factor,
+              conf->threshold,
+              conf->maximum_iterations,
               dev_values.ptr,
               dev_windowSizeScan.ptr,
               dev_shardSizeScan.ptr,
               dev_srcValues.ptr,
               dev_srcIndex.ptr,
               dev_destIndex.ptr,
-              dev_edgeValues.ptr,
+              dev_neigbors.ptr,
               conf->verbose
             );
 

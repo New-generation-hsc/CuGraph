@@ -74,7 +74,7 @@ struct graph_shard {
         windows_size[0] = 0;
         
         values.alloc( num_shards * shard_max_num_nodes );
-        neigbors_size.alloc( nodes );
+        neigbors_size.alloc( edges );
 
         labels.alloc( nodes );
     }
@@ -118,11 +118,16 @@ void graph_construct( FILE               *fp,
     graph.set_up(tmp_graph.n, tmp_graph.m, shards, info.shard_max_num_nodes, info.blocksize);
 
     std::vector<std::vector<edge_t>> graph_windows( shards * shards );
+    // record node number of neighbors
+    std::vector<uint> degrees(tmp_graph.n, 0);
+
     for(uint nodeIdx = 0; nodeIdx < tmp_graph.n; ++nodeIdx){ // node index
         for(uint nbrsIdx = 0; nbrsIdx < tmp_graph.adj[nodeIdx].size(); ++nbrsIdx){ // neigbors index
             edge_t edge = tmp_graph.adj[nodeIdx][nbrsIdx];
             uint shard_index  = edge.dest * shards / shards_vertices;
             uint window_index = edge.src * shards / shards_vertices;
+
+            degrees[edge.src]++;
 
             graph_windows.at( shard_index * shards + window_index ).push_back( edge );
         }
@@ -131,8 +136,6 @@ void graph_construct( FILE               *fp,
 
     // initialize the graph values according to different application
     graph_initializer<Value>::graph_init(graph, conf);
-
-    memset(graph.neigbors_size.ptr, 0, graph.neigbors_size.size());
 
     uint offset = 0;
     for(uint shardIdx = 0; shardIdx < shards; ++shardIdx){
@@ -147,7 +150,7 @@ void graph_construct( FILE               *fp,
                 graph.src_values[ offset ]  = graph.values[ edge.src ];
                 graph.edge_values[ offset ] = edge.weight;
 
-                graph.neigbors_size[ edge.src ]++;
+                graph.neigbors_size[ offset ] = degrees[edge.src];
 
                 ++offset;
             }
