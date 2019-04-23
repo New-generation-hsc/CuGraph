@@ -104,7 +104,7 @@ void graph_construct( FILE               *fp,
     graph_t tmp_graph;
     parse_graph(fp, tmp_graph, conf->undirected, true, conf->verbose);
 
-    blockinfo info = find_proper_blocksize(prop, sizeof(uint), tmp_graph.n, tmp_graph.m);
+    blockinfo info = find_proper_blocksize(prop, sizeof(Value), tmp_graph.n, tmp_graph.m);
 
     //std::cout << "block blocksize : "  << info.blocksize << ", nodes " << info.shard_max_num_nodes << ".\n";
 

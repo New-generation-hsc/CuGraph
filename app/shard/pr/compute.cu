@@ -4,7 +4,6 @@
 #include "../../../utils.hpp"
 #include <cstdio>
 
-
 void pagerank_graph_init(graph_shard<float> &graph, config_t *conf){
     for(uint nodeIdex = 0; nodeIdex < graph.n; ++nodeIdex){
         graph.values[nodeIdex] = conf->init_prval;
@@ -25,7 +24,9 @@ void write_to_file(graph_shard<float> &graph, config_t *conf){
 }
 
 inline __device__ void compute(float* local, const uint *nbrs, const float *src){
-    atomicAdd(local, *src / *nbrs);
+    if(*nbrs != 0){
+        atomicAdd(local, *src / *nbrs);
+    } 
 }
 
 __global__ void kernel ( const uint num_nodes,
@@ -51,7 +52,7 @@ __global__ void kernel ( const uint num_nodes,
     float *blockValues = values + shardOffSet;
 
     for(uint tid = threadIdx.x; tid < shardMaxNumVertices; tid += blockDim.x){
-        localValues[ tid ] = blockValues[ tid ];
+        localValues[ tid ] = 0;
     }
     __syncthreads();
 
@@ -69,7 +70,7 @@ __global__ void kernel ( const uint num_nodes,
 
     bool flag = false;
     for(uint tid = threadIdx.x; tid < shardMaxNumVertices; tid += blockDim.x){
-        localValues[ tid ] = localValues[ tid ] * factor + (1 - factor) / num_nodes;
+        localValues[ tid ] = localValues[ tid ] * factor + (1.0 - factor) / num_nodes;
         if(fabs(localValues[ tid ] - blockValues[ tid ]) > threshold){
             flag = true;
             blockValues[ tid ] = localValues[ tid ];
