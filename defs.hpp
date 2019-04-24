@@ -59,6 +59,7 @@ struct csr_graph
 
         // allocate memory
         row_offsets   = new uint[ nodes + 1 ];
+        row_offsets[0] = 0;
         column_values = new uint[ edges ];
         edge_weights  = new uint[ edges ];
         labels        = new uint[ nodes ];

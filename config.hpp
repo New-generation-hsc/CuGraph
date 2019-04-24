@@ -3,6 +3,8 @@
 
 #define MAX_LEN 256
 
+#define DEFAULT_BLOCK_SIZE 256
+
 struct config_t
 {
     // device number
@@ -16,6 +18,9 @@ struct config_t
 
     // output file path
     char output_path[MAX_LEN];
+
+    // No. number of threads
+    int blocksize;
 
     // whether graph directed
     bool undirected;

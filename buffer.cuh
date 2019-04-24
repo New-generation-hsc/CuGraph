@@ -51,6 +51,14 @@ struct buffer{
         allocator = &allocators[type];
     }
 
+    buffer(size_t n, MemType t){
+        nElems  = n;
+        ptr     = NULL;
+        type    = t;
+        allocator = &allocators[type];
+        allocator->buffer_malloc(allocator, (void**)&ptr, sizeof(T) * nElems);
+    }
+
     void alloc(size_t n){
         nElems = n;
         allocator->buffer_malloc(allocator, (void**)&ptr, sizeof(T) * nElems);
@@ -76,6 +84,13 @@ struct buffer{
         size = ((size < this->size()) ? size : this->size());
 
         (copy_funcs[buf.type][type])((void*)ptr, (const void*)buf.ptr, size);
+        return *this;
+    }
+
+    buffer<T>& operator=(const T *buf){
+        if(allocator != NULL && nElems != 0){
+            (copy_funcs[HOSTPINNED][type])((void*)ptr, (const void*)buf, nElems * sizeof(T));
+        }
         return *this;
     }
 
