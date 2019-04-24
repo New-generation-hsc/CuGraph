@@ -1,55 +1,36 @@
 #include "buffer.cuh"
 
-void host_malloc(buffer_allocator *allocator, void **ptr, size_t const size){
-    assert(allocator != NULL && size != 0);
+void hostpinned_malloc(void **ptr, size_t const size){
+    assert(size != 0);
     cudaHostAlloc(ptr, size, cudaHostAllocPortable);
 }
 
-void host_free(buffer_allocator *allocator, void *block){
-    assert(allocator != NULL && block != NULL);
-    cudaFree(block);
+void hostpinned_free(void *ptr){
+    assert(ptr != NULL);
+    cudaFree(ptr);
 }
 
-void device_malloc(buffer_allocator *allocator, void **ptr, size_t const size){
-    assert(allocator != NULL && size != 0);
-    cudaMalloc(ptr, size);
-}
-
-void device_free(buffer_allocator *allocator, void *block){
-    assert(allocator != NULL && block != NULL);
-    cudaFree(block);
-}
-
-void default_malloc(buffer_allocator *allocator, void **ptr, size_t const size){
-    assert(allocator != NULL && size != 0);
+void host_malloc(void **ptr, size_t const size){
+    assert(size != 0);
     *ptr = malloc(size);
 }
 
-void default_free(buffer_allocator *allocator, void *block){
-    assert(allocator != NULL && block != NULL);
-    free(block);
+void host_free(void *ptr){
+    assert(ptr != NULL);
+    free(ptr);
 }
 
-buffer_allocator host_allocator  = {
-    host_malloc,
-    host_free
-};
+void device_malloc(void **ptr, size_t const size){
+    assert(size != 0);
+    cudaMalloc(ptr, size);
+}
 
-buffer_allocator device_allocator = {
-    device_malloc,
-    device_free
-};
+void device_free(void *ptr){
+    assert(ptr != NULL);
+    cudaFree(ptr);
+}
 
-buffer_allocator default_allocator = {
-    default_malloc,
-    default_free
-};
-
-buffer_allocator allocators[3] = {
-    host_allocator,
-    default_allocator,
-    device_allocator
-};
+/** memory copy functions */
 
 void host_to_host(void *dest, const void* src, size_t count){
     memcpy(dest, src, count);
@@ -71,7 +52,27 @@ void device_to_hostpinned(void *dest, const void *src, size_t count){
     cudaMemcpyAsync(dest, src, count, cudaMemcpyDeviceToHost);
 }
 
-memory_copy copy_funcs = {
+// instantiate the buffer allocator to specific
+template<>
+void (*buffer_allocator<HOSTPINNED>::buffer_malloc)(void **, size_t const) = &hostpinned_malloc;
+
+template<>
+void (*buffer_allocator<HOSTPINNED>::buffer_free)(void *) = &hostpinned_free;
+
+template<>
+void (*buffer_allocator<HOST>::buffer_malloc)(void **, size_t const) = &host_malloc;
+
+
+template<>
+void (*buffer_allocator<HOST>::buffer_free)(void *) = &host_free;
+
+template<>
+void (*buffer_allocator<DEVICE>::buffer_malloc)(void **, size_t const) = &device_malloc;
+
+template<>
+void (*buffer_allocator<DEVICE>::buffer_free)(void *) = &device_free;
+
+void (*memory_copy[3][3])(void *, const void *, size_t) = {
     {
         NULL,
         NULL,

@@ -3,104 +3,93 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <cstring>
 #include <stdexcept>
-#include <iostream>
 
-
-enum MemType{   // memory type
+enum MemType{
     HOSTPINNED, // data in host   pinned memory
     HOST,       // data in host   global memory
     DEVICE      // data in device global memory
 };
 
+template<MemType Type>
 struct buffer_allocator {
-    void (*buffer_malloc)(buffer_allocator *allocator, void **ptr, size_t const size);
-    void (*buffer_free)  (buffer_allocator *allocator, void *block);
+    static void (*buffer_malloc)(void **ptr, size_t const size);
+    static void (*buffer_free)(void *block);
 };
 
-extern buffer_allocator allocators[3];
+// memory copy function
+extern void (*memory_copy[3][3])(void *, const void *, size_t);
 
-typedef void (*memory_copy[3][3])(void *, const void*, size_t );
-extern memory_copy copy_funcs;
-
-template<typename T>
+template< typename T, MemType type = HOSTPINNED >
 struct buffer{
-    size_t nElems;
-    T *ptr;         // array of elements
-    buffer_allocator *allocator;
-    MemType type;
 
+    // specific memory type
+    static const MemType buffer_type = type;
+
+    // No. number of elements
+    size_t num_elems;
+
+    // elements pointer
+    T *ptr;
+
+    // static allocator, all same memory type buffer share the same allocator
+    static const buffer_allocator<type> allocator;
+
+    // default construct
     buffer(){
-        nElems     = 0;
-        ptr        = NULL;
-        type       = HOST;
-        allocator = &allocators[type];
-    }
-
-    buffer(size_t n){
-        type = HOST;
-        allocator = &allocators[type];
-        nElems = n;
-        allocator->buffer_malloc(allocator, (void**)&ptr, sizeof(T) * nElems);
-    }
-
-    buffer(MemType t){
-        nElems    = 0;
+        num_elems = 0;
         ptr       = NULL;
-        type = t;
-        allocator = &allocators[type];
     }
 
-    buffer(size_t n, MemType t){
-        nElems  = n;
-        ptr     = NULL;
-        type    = t;
-        allocator = &allocators[type];
-        allocator->buffer_malloc(allocator, (void**)&ptr, sizeof(T) * nElems);
+    /* @brief construct n elements buffer */
+    buffer(size_t n){
+        num_elems = n;
+        allocator.buffer_malloc((void**)&ptr, sizeof(T) * num_elems);
     }
 
     void alloc(size_t n){
-        nElems = n;
-        allocator->buffer_malloc(allocator, (void**)&ptr, sizeof(T) * nElems);
+        num_elems = n;
+        allocator.buffer_malloc((void**)&ptr, sizeof(T) * num_elems);
     }
 
     void free(){
-        nElems = 0;
-        allocator->buffer_free(allocator, (void*)ptr);
-        ptr = NULL;
+        num_elems = 0;
+        allocator.buffer_free((void*)ptr);
     }
 
-    buffer<T>& operator=(buffer<T> & buf){
-        
-        if(nElems == 0){
-            alloc(buf.nElems); // allocate n elements for storage
+    template<MemType U>
+    buffer<T, type>& operator=(buffer<T, U> &buf){
+
+        // if this buffer has no storage, then allocate storage
+        if(num_elems == 0){
+            alloc(buf.num_elems);
         }
 
-        assert (allocator && buf.allocator && 
-            copy_funcs[buf.type][type]);
-        
-        size_t size = buf.size();
+        size_t sizebytes = buf.size();
+        sizebytes = ((sizebytes < this->size()) ? sizebytes : this->size());
 
-        size = ((size < this->size()) ? size : this->size());
+        assert(memory_copy[U][type] != NULL);
 
-        (copy_funcs[buf.type][type])((void*)ptr, (const void*)buf.ptr, size);
+        (memory_copy[U][type])((void*)ptr, (const void*)buf.ptr, sizebytes);
+
         return *this;
     }
 
-    buffer<T>& operator=(const T *buf){
-        if(allocator != NULL && nElems != 0){
-            (copy_funcs[HOSTPINNED][type])((void*)ptr, (const void*)buf, nElems * sizeof(T));
+    buffer<T, type>& operator=(T *buf){
+        if(num_elems != 0){
+            (memory_copy[HOSTPINNED][type])((void*)ptr, (const void*)buf, num_elems * sizeof(T));
         }
         return *this;
     }
 
     size_t size(){
-        return sizeof(T) * nElems;
+        return sizeof(T) * num_elems;
     }
 
-    T& operator[](size_t index) {
-        if(index >= nElems){
-            throw std::runtime_error("buffer index out of range");
+    T& operator[](size_t index){
+        if(index >= num_elems){
+            throw std::out_of_range("buffer index out of range");
         }
         return ptr[index];
     }

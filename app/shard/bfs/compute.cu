@@ -161,12 +161,12 @@ void process( const uint blocksize,
 
 void execute(graph_shard<uint> &graph, config_t *conf){
 
-    buffer<uint>   dev_values( DEVICE );
-    buffer<uint>   dev_srcValues( DEVICE );
-    buffer<uint>   dev_destIndex ( DEVICE );
-    buffer<uint>   dev_srcIndex( DEVICE );
-    buffer<uint>   dev_shardSizeScan( DEVICE );
-    buffer<uint>   dev_windowSizeScan( DEVICE );
+    buffer<uint, DEVICE>   dev_values;
+    buffer<uint, DEVICE>   dev_srcValues;
+    buffer<uint, DEVICE>   dev_destIndex;
+    buffer<uint, DEVICE>   dev_srcIndex;
+    buffer<uint, DEVICE>   dev_shardSizeScan;
+    buffer<uint, DEVICE>   dev_windowSizeScan;
 
     dev_values  = graph.values;
     dev_srcValues = graph.src_values;

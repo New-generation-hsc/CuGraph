@@ -164,20 +164,18 @@ void execute( csr_graph       &csr,
             )
 {
     // allocate device memory
-    buffer<Value> dev_values(DEVICE);
-    dev_values.alloc(csr.n);
+    buffer<Value, DEVICE> dev_values( csr.n );
 
-    buffer<uint> dev_edges(csr.m, DEVICE);
+    buffer<uint, DEVICE> dev_edges( csr.m );
     dev_edges = csr.column_values;
 
-    buffer<Value> dev_weights(csr.m, DEVICE);
+    buffer<Value, DEVICE> dev_weights( csr.m );
     dev_weights = csr.edge_weights;
 
-    buffer<uint> dev_offsets(csr.n + 1, DEVICE);
+    buffer<uint, DEVICE> dev_offsets( csr.n + 1 );
     dev_offsets = csr.row_offsets;
 
-    buffer<int> dev_flags(DEVICE);
-    dev_flags.alloc(csr.n);
+    buffer<int, DEVICE> dev_flags( csr.n );
 
     cuda_sssp( csr.n,
                conf->blocksize,

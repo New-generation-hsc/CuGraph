@@ -173,13 +173,13 @@ void process( const uint num_nodes,
 
 void execute(graph_shard<float> &graph, config_t *conf){
 
-    buffer<float>   dev_values( DEVICE );
-    buffer<float>   dev_srcValues( DEVICE );
-    buffer<uint>   dev_neigbors( DEVICE );
-    buffer<uint>   dev_destIndex ( DEVICE );
-    buffer<uint>   dev_srcIndex( DEVICE );
-    buffer<uint>   dev_shardSizeScan( DEVICE );
-    buffer<uint>   dev_windowSizeScan( DEVICE );
+    buffer<float, DEVICE>   dev_values;
+    buffer<float, DEVICE>   dev_srcValues;
+    buffer<uint, DEVICE>   dev_neigbors;
+    buffer<uint, DEVICE>   dev_destIndex;
+    buffer<uint, DEVICE>   dev_srcIndex;
+    buffer<uint, DEVICE>   dev_shardSizeScan;
+    buffer<uint, DEVICE>   dev_windowSizeScan;
 
     dev_values  = graph.values;
     dev_srcValues = graph.src_values;
