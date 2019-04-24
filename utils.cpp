@@ -31,3 +31,10 @@ void global_config_init(config_t *conf){
 	conf->threshold = 1e-4;
 	conf->verbose = true;
 }
+
+/* instantiate the template print helper to specific  */
+template<>
+const char* template_print<uint>::fmt = "%u";
+
+template<>
+const char* template_print<float>::fmt = "%.4f";
