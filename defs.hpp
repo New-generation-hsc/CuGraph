@@ -53,6 +53,9 @@ struct csr_graph
     // the vertex labels
     uint *labels;
 
+    // No. number of neighbors of each node, outdegrees
+    uint *neighbors;
+
     void set_up(uint nodes, uint edges){
         n = nodes;
         m = edges;
@@ -63,6 +66,7 @@ struct csr_graph
         column_values = new uint[ edges ];
         edge_weights  = new uint[ edges ];
         labels        = new uint[ nodes ];
+        neighbors     = new uint[ edges ];
     }
 
     void destroy(){
@@ -73,6 +77,7 @@ struct csr_graph
         if(column_values != nullptr) delete[] column_values;
         if(edge_weights != nullptr)  delete[] edge_weights;
         if(labels != nullptr) delete[] labels;
+        if(neighbors != nullptr) delete[] neighbors;
     }
 };
 

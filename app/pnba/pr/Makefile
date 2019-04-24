@@ -3,11 +3,11 @@ FLAGS := -O3 -std=c++11
 
 SOURCE := ../../../buffer.cu ../../../graphio.cpp ../../../query.cu ../../../utils.cpp main.cu
 
-TARGET := bfs
+TARGET := pagerank
 
-all : bfs
+all : pagerank
 
-bfs :
+pagerank :
 	$(CC) $(FLAGS) $(SOURCE) -o $(TARGET)
 
 clean :

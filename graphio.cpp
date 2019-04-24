@@ -121,6 +121,10 @@ void parse_graph( FILE       *fp,
     parse_graph(fp, tmp_graph, undirected, dest_based, verbose);
 
     graph.set_up(tmp_graph.n, tmp_graph.m);
+    
+    // record the degrees of each node
+    uint *degrees = new uint[tmp_graph.n];
+    memset(degrees, 0, sizeof(uint) * tmp_graph.n);
 
     uint offset = 0;
     for(uint nodeIdx = 0; nodeIdx < tmp_graph.n; ++nodeIdx){  // graph node Index
@@ -135,10 +139,20 @@ void parse_graph( FILE       *fp,
             graph.edge_weights[offset] = edge.weight;
 
             ++offset;
+
+            // increase degree of each node
+            degrees[edge.src]++;
         }
 
         // set node neighbor index
         graph.row_offsets[nodeIdx + 1] = offset;
         graph.labels[nodeIdx] = tmp_graph.labels[nodeIdx];
     }
+
+    for(uint edgeIdx = 0; edgeIdx < tmp_graph.m; edgeIdx++){
+        graph.neighbors[edgeIdx] = degrees[graph.column_values[edgeIdx]];
+    }
+
+    // free memory
+    delete [] degrees;
 }
