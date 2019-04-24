@@ -30,6 +30,7 @@ void global_config_init(config_t *conf){
 	conf->factor = 0.85;
 	conf->threshold = 1e-4;
 	conf->verbose = true;
+	conf->blocksize = DEFAULT_BLOCK_SIZE;
 }
 
 /* instantiate the template print helper to specific  */

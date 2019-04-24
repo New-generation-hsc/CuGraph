@@ -47,12 +47,13 @@ FILE *open_file_access(const char*, const char*);
 */
 template<typename Value>
 void write_to_file(const char* filename, Value *ptr, const uint *labels, int count){
-	
+
 	FILE *fp = open_file_access(filename, "w");
 
 	for(uint idx = 0; idx < count; idx++){
 		fprintf(fp, "%u -> ", labels[idx]);
 		fprintf(fp, template_print<Value>::fmt, ptr[idx]);
+		fprintf(fp, "\n");
 	}
 }
 
