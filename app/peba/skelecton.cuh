@@ -31,6 +31,9 @@ struct graph_structure
     // outdegrees of each edge destination
     buffer<uint>  out_degrees;
 
+    // outdegrees of each node source
+    buffer<uint>  src_degrees;
+
     // the outdegrees of each node
     buffer<uint>  degrees;
 
@@ -47,6 +50,8 @@ struct graph_structure
         weights.alloc( edges );
         src_indexs.alloc( edges );
         dest_indexs.alloc( edges );
+
+        src_degrees.alloc( edges );
         out_degrees.alloc( edges );
 
         degrees.alloc( nodes );
@@ -70,6 +75,7 @@ struct graph_structure
                     out_degrees[edge_index] = csr.degrees[node_idx];
                     dest_indexs[edge_index] = node_idx;
                     src_indexs [edge_index] = csr.column_values[edge_index];
+                    src_degrees[edge_index] = csr.degrees[csr.column_values[edge_index]];
 
                     ++edge_index;
                 }
@@ -81,6 +87,7 @@ struct graph_structure
                     out_degrees[edge_index] = csr.degrees[csr.column_values[edge_index]];
                     dest_indexs[edge_index] = csr.column_values[edge_index];
                     src_indexs [edge_index] = node_idx;
+                    src_degrees[edge_index] = csr.degrees[node_idx];
 
                     ++edge_index;
                 }
@@ -96,6 +103,7 @@ struct graph_structure
         out_degrees.free();
         degrees.free();
         labels.free();
+        src_degrees.free();
     }
 
 };
