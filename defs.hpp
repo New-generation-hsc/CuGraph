@@ -56,7 +56,13 @@ struct csr_graph
     // No. number of neighbors of each node, outdegrees
     uint *neighbors;
 
-    void set_up(uint nodes, uint edges){
+    // No. number of each node outdegrees
+    uint *degrees;
+
+    // whthter destination based format
+    bool dest_based;
+
+    void set_up(uint nodes, uint edges, bool based = false){
         n = nodes;
         m = edges;
 
@@ -67,6 +73,9 @@ struct csr_graph
         edge_weights  = new uint[ edges ];
         labels        = new uint[ nodes ];
         neighbors     = new uint[ edges ];
+        degrees       = new uint[ nodes ];
+
+        dest_based = based;
     }
 
     void destroy(){
@@ -78,6 +87,7 @@ struct csr_graph
         if(edge_weights != nullptr)  delete[] edge_weights;
         if(labels != nullptr) delete[] labels;
         if(neighbors != nullptr) delete[] neighbors;
+        if(degrees != nullptr ) delete[] degrees;
     }
 };
 

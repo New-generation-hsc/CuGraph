@@ -52,6 +52,10 @@ void device_to_hostpinned(void *dest, const void *src, size_t count){
     cudaMemcpyAsync(dest, src, count, cudaMemcpyDeviceToHost);
 }
 
+void host_to_hostpinned(void *dest, const void *src, size_t count){
+    host_to_host(dest, src, count);
+}
+
 // instantiate the buffer allocator to specific
 template<>
 void (*buffer_allocator<HOSTPINNED>::buffer_malloc)(void **, size_t const) = &hostpinned_malloc;
@@ -79,7 +83,7 @@ void (*memory_copy[3][3])(void *, const void *, size_t) = {
         &hostpinned_to_device
     },
     {
-        NULL,
+        &host_to_hostpinned,
         &host_to_host,
         &host_to_device
     },

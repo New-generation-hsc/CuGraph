@@ -78,7 +78,7 @@ struct buffer{
 
     buffer<T, type>& operator=(T *buf){
         if(num_elems != 0){
-            (memory_copy[HOSTPINNED][type])((void*)ptr, (const void*)buf, num_elems * sizeof(T));
+            (memory_copy[HOST][type])((void*)ptr, (const void*)buf, num_elems * sizeof(T));
         }
         return *this;
     }
