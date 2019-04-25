@@ -147,4 +147,8 @@ void parse_graph( FILE       *fp,
         graph.row_offsets[nodeIdx + 1] = offset;
         graph.labels[nodeIdx] = tmp_graph.labels[nodeIdx];
     }
+
+    for(uint edge_idx = 0; edge_idx < tmp_graph.m; edge_idx++){
+        graph.neighbors[edge_idx] = graph.degrees[graph.column_values[edge_idx]];
+    }
 }
